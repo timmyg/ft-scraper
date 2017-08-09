@@ -108,8 +108,8 @@ function refreshAllItems() {
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;
       start = moment();
-      // async.eachLimit(activeItemLinks, 10, importItem, function(err, result) {
-      async.eachSeries(activeItemLinks, importItem, function(err, result) {
+      async.eachLimit(activeItemLinks, 30, importItem, function(err, result) {
+      // async.eachSeries(activeItemLinks, importItem, function(err, result) {
         const duration = moment().diff(start, 's');
         const durationMinutes = duration / 60;
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;

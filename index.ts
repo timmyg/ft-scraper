@@ -77,7 +77,7 @@ function importItem(item, cb) {
     console.log(`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`)
 
     let $ = cheerio.load(table);
-    let bids: number = 0, highBidder: string = "", amount: number = 0;
+    let bids: number = 0, highBidder: string, amount: number;
     try { bids = Number($("tr:nth-child(2) td:nth-child(4)").first().text().trim()) } catch (e) {}
     try { highBidder = $("tr:nth-child(2) td:nth-child(5)").first().text().trim() } catch (e) {}
     try {
@@ -87,7 +87,7 @@ function importItem(item, cb) {
       }
       amount = Number(amountString);
     } catch (e) {}
-    if (!bids) { return cb(); }
+    // if (!bids) { return cb(); }
     let bidding = new Bidding(highBidder, amount, bids, new Date());
     dbItems.updateOne({_id: item._id}, {"$set": {bidding: bidding}}, (a, b) => {
       console.log("^", item.link)

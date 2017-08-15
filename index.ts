@@ -155,18 +155,20 @@ function getNewAuctions() {
 }
 
 function refresh() {
-  async.forever(
-    (next) => {
-      refreshAllItems(() => {
-        next()
-      });
-    }, (err) => {
-      console.log("forever loop error:", err)
-    }
-  );
-  schedule.scheduleJob({hour: 5, minute: 10}, () => {
-    getNewAuctions();
+  refreshAllItems(() => {
   });
+  // async.forever(
+  //   (next) => {
+  //     refreshAllItems(() => {
+  //       next()
+  //     });
+  //   }, (err) => {
+  //     console.log("forever loop error:", err)
+  //   }
+  // );
+  // schedule.scheduleJob({hour: 5, minute: 10}, () => {
+  //   getNewAuctions();
+  // });
 }
 
 MongoClient.connect(process.env.MONGO_URL, function (err, db) {

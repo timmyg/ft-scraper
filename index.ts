@@ -5,7 +5,7 @@ let async = require('async');
 const schedule = require('node-schedule');
 let _ = require('underscore');
 const Hapi = require('hapi');
-// let nightmare = Nightmare({ show: false });
+let nightmare = Nightmare({ show: false });
 let cincyAuctions = 'http://www.bidfta.com/search?utf8=%E2%9C%93&keywords=&search%5Btagged_with%5D=&location=Cincinnati%2C+Oh&seller=&button=';
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
@@ -62,7 +62,7 @@ let start;
 
 function importItem(item, cb) {
   console.log("import item:", item.link)
-  Nightmare()
+  nightmare
     .goto(item.link)
     .wait('#DataTable')
     .evaluate(() => {

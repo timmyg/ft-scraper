@@ -29,6 +29,7 @@
     "@types/node": "^7.0.18",
     "async": "^2.4.1",
     "cheerio": "^0.22.0",
+    "electron": "^1.7.5",
     "hapi": "^16.5.2",
     "moment": "^2.18.1",
     "mongodb": "^2.2.28",

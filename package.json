@@ -8,7 +8,8 @@
     "build:dev": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts",
     "heroku-prebuild": "export NPM_CONFIG_PRODUCTION=false; export NODE_ENV=; NPM_CONFIG_PRODUCTION=false NODE_ENV=development npm install --only=dev --dev",
     "heroku-postbuild": "export NPM_CONFIG_PRODUCTION=true; export NODE_ENV=production;",
-    "start": "npm run build:prod; npm run start:prod",
+    "postinstall": "npm run build:prod",
+    "start": "npm run start:prod",
     "build:prod": "tsc",
     "start:prod": "node dist/index.js"
   },
@@ -16,24 +17,26 @@
     "type": "git",
     "url": "git+https://github.com/oscarmorrison/lifeScrape.git"
   },
+  "engines": {
+    "node": "7.2.1",
+    "npm": "3.10.10"
+  },
   "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/oscarmorrison/nightmare-heroku"
   },
   "homepage": "https://github.com/oscarmorrison/nightmare-heroku",
-  "devDependencies": {
-    "@types/node": "^7.0.18",
-    "nodemon": "^1.11.0",
-    "ts-node": "^3.0.4",
-    "typescript": "^2.3.2",
-    "typescript-compiler": "^1.4.1-2"
-  },
   "dependencies": {
     "async": "^2.4.1",
     "cheerio": "^0.22.0",
     "electron": "^1.7.5",
     "hapi": "^16.5.2",
+    "@types/node": "^7.0.18",
+    "nodemon": "^1.11.0",
+    "ts-node": "^3.0.4",
+    "typescript": "^2.3.2",
+    "typescript-compiler": "^1.4.1-2",
     "moment": "^2.18.1",
     "mongodb": "^2.2.28",
     "nightmare": "^2.10.0",

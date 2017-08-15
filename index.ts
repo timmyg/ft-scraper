@@ -2,6 +2,7 @@ let Nightmare = require('nightmare');
 let cheerio = require('cheerio');
 let moment = require('moment');
 let async = require('async');
+const schedule = require('node-schedule');
 let _ = require('underscore');
 const Hapi = require('hapi');
 // let nightmare = Nightmare({ show: false });
@@ -100,7 +101,7 @@ function importItem(item, cb) {
     });
 }
 
-function refreshAllItems() {
+function refreshAllItems(cb) {
   // TODO how will this refresh "recently" completed items
   // find active items that have not been refreshed yet, order by auction end ascending
   dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
@@ -117,6 +118,7 @@ function refreshAllItems() {
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;
         console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
         db.close();
+        return cb();
       });
     });
   });
@@ -153,8 +155,18 @@ function getNewAuctions() {
 }
 
 function refresh() {
-  // getNewAuctions();
-  refreshAllItems();
+  async.forever(
+    (next) => {
+      refreshAllItems(() => {
+        next()
+      });
+    }, (err) => {
+      console.log("forever loop error:", err)
+    }
+  );
+  schedule.scheduleJob({hour: 5, minute: 10}, () => {
+    getNewAuctions();
+  });
 }
 
 MongoClient.connect(process.env.MONGO_URL, function (err, db) {

@@ -8,9 +8,9 @@
     "build:dev": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts",
     "heroku-prebuild": "export NPM_CONFIG_PRODUCTION=false; export NODE_ENV=; NPM_CONFIG_PRODUCTION=false NODE_ENV=development npm install --only=dev --dev",
     "heroku-postbuild": "export NPM_CONFIG_PRODUCTION=true; export NODE_ENV=production;",
-    "start": "npm run build:prod; npm run start:prod",
-    "build:prod": "./node_modules/.bin/tsc",
-    "start:prod": "node dist/index.js"
+    "start": "npm run start:prod",
+    "start:prod": "node dist/index.js",
+    "postinstall": "tsc"
   },
   "repository": {
     "type": "git",
@@ -35,6 +35,7 @@
     "moment": "^2.18.1",
     "mongodb": "^2.2.28",
     "nightmare": "^2.10.0",
+    "tsc": "^1.20150623.0",
     "underscore": "^1.8.3"
   }
 }

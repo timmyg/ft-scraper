@@ -4,7 +4,7 @@ let moment = require('moment');
 let async = require('async');
 let _ = require('underscore');
 const Hapi = require('hapi');
-let nightmare = Nightmare({ show: false });
+// let nightmare = Nightmare({ show: false });
 let cincyAuctions = 'http://www.bidfta.com/search?utf8=%E2%9C%93&keywords=&search%5Btagged_with%5D=&location=Cincinnati%2C+Oh&seller=&button=';
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
@@ -61,41 +61,43 @@ let start;
 
 function importItem(item, cb) {
   console.log("import item:", item.link)
-  Nightmare().goto(item.link)
-  .wait('#DataTable')
-  .evaluate(() => {
-    return document!.querySelector('#DataTable')!.innerHTML;
-  })
-  .end()
-  .then((table) => {
-    gI++;
+  Nightmare()
+    .goto(item.link)
+    .wait('#DataTable')
+    .evaluate(() => {
+      return document!.querySelector('#DataTable')!.innerHTML;
+    })
+    .end()
+    .then((table) => {
+      gI++;
 
-    //  estimate time
-    let estimatedTimeSeconds = gActiveItemLinks / gI * moment().diff(start, 's');
-    const durationMinutes = estimatedTimeSeconds / 60;
-    const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-    console.log(`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`)
+      //  estimate time
+      let estimatedTimeSeconds = gActiveItemLinks / gI * moment().diff(start, 's');
+      const durationMinutes = estimatedTimeSeconds / 60;
+      const durationMinutesRounded = Math.round(100*durationMinutes)/100;
+      console.log(`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`)
 
-    let $ = cheerio.load(table);
-    let bids: number = 0, highBidder: string, amount: number;
-    try { bids = Number($("tr:nth-child(2) td:nth-child(4)").first().text().trim()) } catch (e) {}
-    try { highBidder = $("tr:nth-child(2) td:nth-child(5)").first().text().trim() } catch (e) {}
-    try {
-      let amountString = $("tr:nth-child(2) td:nth-child(6)").first().text().trim();
-      if (amountString.indexOf("=") > -1) {
-        amountString = amountString.substring(amountString.indexOf("=") + 1).trim();
-      }
-      amount = Number(amountString);
-    } catch (e) {}
-    // if (!bids) { return cb(); }
-    let bidding = new Bidding(highBidder, amount, bids, new Date());
-    dbItems.updateOne({_id: item._id}, {"$set": {bidding: bidding}}, (a, b) => {
-      console.log("^", item.link)
-      return cb();
+      let $ = cheerio.load(table);
+      let bids: number = 0, highBidder: string, amount: number;
+      try { bids = Number($("tr:nth-child(2) td:nth-child(4)").first().text().trim()) } catch (e) {}
+      try { highBidder = $("tr:nth-child(2) td:nth-child(5)").first().text().trim() } catch (e) {}
+      try {
+        let amountString = $("tr:nth-child(2) td:nth-child(6)").first().text().trim();
+        if (amountString.indexOf("=") > -1) {
+          amountString = amountString.substring(amountString.indexOf("=") + 1).trim();
+        }
+        amount = Number(amountString);
+      } catch (e) {}
+      // if (!bids) { return cb(); }
+      let bidding = new Bidding(highBidder, amount, bids, new Date());
+      dbItems.updateOne({_id: item._id}, {"$set": {bidding: bidding}}, (a, b) => {
+        console.log("^", item.link)
+        return cb();
+      });
+    }).catch((error) => {
+        console.error('importItem error', error);
+        return cb();
     });
-  }).catch((error) => {
-      console.error('an error has occurred: ' + error);
-  });
 }
 
 function refreshAllItems() {
@@ -120,7 +122,7 @@ function refreshAllItems() {
   });
 }
 function getNewAuctions() {
-  nightmare
+  Nightmare()
     .goto(cincyAuctions)
     .wait('.row.finePrint')
     .evaluate(() => {
@@ -145,7 +147,7 @@ function getNewAuctions() {
       })
     })
     .catch((error) => {
-      console.error('Search failed:', error);
+      console.error('getNewAuctions error:', error);
     });
 
 }

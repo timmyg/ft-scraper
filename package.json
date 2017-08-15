@@ -35,7 +35,7 @@
     "moment": "^2.18.1",
     "mongodb": "^2.2.28",
     "nightmare": "^2.10.0",
-    "tsc": "^1.20150623.0",
+    "typescript-compiler": "^1.4.1-2",
     "underscore": "^1.8.3"
   }
 }

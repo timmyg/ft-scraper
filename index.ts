@@ -70,6 +70,7 @@ function importItem(item, cb) {
     })
     .end()
     .then((table) => {
+      console.log("table", table)
       gI++;
 
       //  estimate time

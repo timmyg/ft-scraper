@@ -6,8 +6,6 @@
   "scripts": {
     "start:dev": "npm run build:dev",
     "build:dev": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts",
-    "heroku-prebuild": "export NPM_CONFIG_PRODUCTION=false; export NODE_ENV=; NPM_CONFIG_PRODUCTION=false NODE_ENV=development npm install --only=dev --dev",
-    "heroku-postbuild": "export NPM_CONFIG_PRODUCTION=true; export NODE_ENV=production;",
     "postinstall": "npm run build:prod",
     "start": "npm run start:prod",
     "build:prod": "tsc",

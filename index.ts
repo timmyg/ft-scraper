@@ -159,8 +159,8 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  refreshAllItems(() => {
-  });
+  // refreshAllItems(() => {
+  // });
   // async.forever(
   //   (next) => {
   //     refreshAllItems(() => {
@@ -173,7 +173,7 @@ function refresh() {
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
-    // getCincyAreaAuctions();
+    getCincyAreaAuctions();
 }
 
 function getCincyAreaAuctions() {

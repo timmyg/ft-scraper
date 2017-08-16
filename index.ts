@@ -1,5 +1,6 @@
 
 let Nightmare = require('nightmare');
+let nightmareInstance = Nightmare();
 let cheerio = require('cheerio');
 let moment = require('moment');
 let async = require('async');
@@ -159,23 +160,26 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  // refreshAllItems(() => {
-  // });
-  async.forever(
-    (next) => {
-      console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
-      refreshAllItems(() => {
-        console.log("- - - - - - - -  REEEFRESH AGAIN")
-        next()
-      });
-    }, (err) => {
-      console.log("forever loop error:", err)
-    }
-  );
+  refreshAllItems(() => {
+  });
+
+  // async.forever(
+  //   (next) => {
+  //     console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
+  //     refreshAllItems(() => {
+  //       console.log("- - - - - - - -  REEEFRESH AGAIN")
+  //       next()
+  //     });
+  //   }, (err) => {
+  //     console.log("forever loop error:", err)
+  //   }
+  // );
+
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
-    // getCincyAreaAuctions();
+
+  // getCincyAreaAuctions();
 }
 
 function getCincyAreaAuctions() {

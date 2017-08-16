@@ -117,7 +117,7 @@ function refreshAllItems(cb) {
         const durationMinutes = duration / 60;
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;
         console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
-        db.close();
+        // db.close();
         return cb();
       });
     });
@@ -159,17 +159,17 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  refreshAllItems(() => {
-  });
-  // async.forever(
-  //   (next) => {
-  //     refreshAllItems(() => {
-  //       next()
-  //     });
-  //   }, (err) => {
-  //     console.log("forever loop error:", err)
-  //   }
-  // );
+  // refreshAllItems(() => {
+  // });
+  async.forever(
+    (next) => {
+      refreshAllItems(() => {
+        next()
+      });
+    }, (err) => {
+      console.log("forever loop error:", err)
+    }
+  );
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });

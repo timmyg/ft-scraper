@@ -1,6 +1,5 @@
 
 let Nightmare = require('nightmare');
-let nightmareInstance = Nightmare();
 let cheerio = require('cheerio');
 let moment = require('moment');
 let async = require('async');
@@ -105,9 +104,9 @@ function importItem(item, cb) {
 function refreshAllItems(cb) {
   // TODO how will this refresh "recently" completed items
   // find active items that have not been refreshed yet, order by auction end ascending
-  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).limit(100).toArray((err, nonRefreshedItemLinks) => {
+  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
     // find active items that have been refreshed, order by last refreshed ascending
-    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).limit(100).toArray((err, refreshedItemLinks) => {
+    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
       let activeItemLinks = nonRefreshedItemLinks.concat(refreshedItemLinks);
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;
@@ -118,7 +117,7 @@ function refreshAllItems(cb) {
         const durationMinutes = duration / 60;
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;
         console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
-        // db.close();
+        db.close();
         return cb();
       });
     });
@@ -162,24 +161,19 @@ function getNewAuctions(cityAuctionsLink, cb) {
 function refresh() {
   refreshAllItems(() => {
   });
-
   // async.forever(
   //   (next) => {
-  //     console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
   //     refreshAllItems(() => {
-  //       console.log("- - - - - - - -  REEEFRESH AGAIN")
   //       next()
   //     });
   //   }, (err) => {
   //     console.log("forever loop error:", err)
   //   }
   // );
-
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
-
-  // getCincyAreaAuctions();
+    // getCincyAreaAuctions();
 }
 
 function getCincyAreaAuctions() {

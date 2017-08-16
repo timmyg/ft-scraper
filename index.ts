@@ -161,6 +161,7 @@ function getNewAuctions(cityAuctionsLink, cb) {
 function refresh() {
   // refreshAllItems(() => {
   // });
+  console.log("forevering")
   async.forever(
     (next) => {
       console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")

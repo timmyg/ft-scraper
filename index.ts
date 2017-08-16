@@ -1,4 +1,3 @@
-
 let Nightmare = require('nightmare');
 let cheerio = require('cheerio');
 let moment = require('moment');
@@ -6,16 +5,18 @@ let async = require('async');
 const schedule = require('node-schedule');
 let _ = require('underscore');
 const Hapi = require('hapi');
+// let nightmare = Nightmare({ show: false });
+let cincyAuctions = 'http://www.bidfta.com/search?utf8=%E2%9C%93&keywords=&search%5Btagged_with%5D=&location=Cincinnati%2C+Oh&seller=&button=';
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
 const selector = "#DataTable";
 var MongoClient = require('mongodb').MongoClient
 let db, dbAuctions, dbItems;
 
-require('dotenv').config()
+// mongodb://scraper:e6KFHJ4BxcDAfr7j2MjXPuK8wqAN9@ds119302.mlab.com:19302/ft-auctions
 
 function importAuction(auctionId, cb) {
-  let auctionLink = `${process.env.SCRAPE_HOST}/cgi-bin/mnprint.cgi?${auctionId}`;
+  let auctionLink = `https://bid.bidfta.com/cgi-bin/mnprint.cgi?${auctionId}`;
   Nightmare()
     .goto(auctionLink)
     .wait('#DataTable')
@@ -42,7 +43,7 @@ function importAuction(auctionId, cb) {
         try { specs = $item("b:contains('Specifications')")[0].nextSibling.nodeValue } catch (e) {}
         try { additionalInfo = $item("b:contains('Additional Info')")[0].nextSibling.nodeValue } catch (e) {}
         try { model = $item("b:contains('Model')")[0].nextSibling.nodeValue } catch (e) {}
-        link = `${process.env.SCRAPE_HOST}/cgi-bin/mnlist.cgi?${auctionId}/${itemId}`
+        link = `https://bid.bidfta.com/cgi-bin/mnlist.cgi?${auctionId}/${itemId}`
         let item: Item = new Item( itemId, auctionId, msrp, description, link, additionalInfo, brand, model, specs, newAuction);
         let cleanItem = item.cleanup();
         console.log("+")
@@ -123,12 +124,9 @@ function refreshAllItems(cb) {
     });
   });
 }
-function getNewAuctions(cityAuctionsLink, cb) {
-  console.log("-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_")
-  console.log(cityAuctionsLink)
-  console.log("-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_")
+function getNewAuctions() {
   Nightmare()
-    .goto(cityAuctionsLink)
+    .goto(cincyAuctions)
     .wait('.row.finePrint')
     .evaluate(() => {
       return [...document.querySelectorAll('.row.currentAuctionsListings .auction > a')].map(el => (el as any).href.substring((el as any).href.indexOf("?")+1));
@@ -143,12 +141,11 @@ function getNewAuctions(cityAuctionsLink, cb) {
         const start = moment();
         async.eachSeries(newAuctionIds, importAuction, function(err, result) {
             // if result is true then every auction exists
-            // const duration = moment().diff(start, 's');
-            // const durationMinutes = duration / 60;
-            // const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-            // console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
-            // db.close();
-            return cb();
+            const duration = moment().diff(start, 's');
+            const durationMinutes = duration / 60;
+            const durationMinutesRounded = Math.round(100*durationMinutes)/100;
+            console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
+            db.close();
         });
       })
     })
@@ -159,8 +156,8 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  // refreshAllItems(() => {
-  // });
+  refreshAllItems(() => {
+  });
   // async.forever(
   //   (next) => {
   //     refreshAllItems(() => {
@@ -173,20 +170,6 @@ function refresh() {
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
-    getCincyAreaAuctions();
-}
-
-function getCincyAreaAuctions() {
-  const allAuctions = process.env.AUCTIONS_LINK; // comma separated
-  let auctionsLinks = allAuctions.split(",");
-  console.log("auctionsLinks.length", auctionsLinks.length)
-  async.eachSeries(auctionsLinks, getNewAuctions, function(err, result) {
-      const duration = moment().diff(start, 's');
-      const durationMinutes = duration / 60;
-      const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-      console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
-      // db.close();
-  });
 }
 
 MongoClient.connect(process.env.MONGO_URL, function (err, db) {

@@ -1,3 +1,4 @@
+
 let Nightmare = require('nightmare');
 let cheerio = require('cheerio');
 let moment = require('moment');
@@ -5,18 +6,16 @@ let async = require('async');
 const schedule = require('node-schedule');
 let _ = require('underscore');
 const Hapi = require('hapi');
-// let nightmare = Nightmare({ show: false });
-let cincyAuctions = 'http://www.bidfta.com/search?utf8=%E2%9C%93&keywords=&search%5Btagged_with%5D=&location=Cincinnati%2C+Oh&seller=&button=';
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
 const selector = "#DataTable";
 var MongoClient = require('mongodb').MongoClient
 let db, dbAuctions, dbItems;
 
-// mongodb://scraper:e6KFHJ4BxcDAfr7j2MjXPuK8wqAN9@ds119302.mlab.com:19302/ft-auctions
+require('dotenv').config()
 
 function importAuction(auctionId, cb) {
-  let auctionLink = `https://bid.bidfta.com/cgi-bin/mnprint.cgi?${auctionId}`;
+  let auctionLink = `${process.env.SCRAPE_HOST}/cgi-bin/mnprint.cgi?${auctionId}`;
   Nightmare()
     .goto(auctionLink)
     .wait('#DataTable')
@@ -43,7 +42,7 @@ function importAuction(auctionId, cb) {
         try { specs = $item("b:contains('Specifications')")[0].nextSibling.nodeValue } catch (e) {}
         try { additionalInfo = $item("b:contains('Additional Info')")[0].nextSibling.nodeValue } catch (e) {}
         try { model = $item("b:contains('Model')")[0].nextSibling.nodeValue } catch (e) {}
-        link = `https://bid.bidfta.com/cgi-bin/mnlist.cgi?${auctionId}/${itemId}`
+        link = `${process.env.SCRAPE_HOST}/cgi-bin/mnlist.cgi?${auctionId}/${itemId}`
         let item: Item = new Item( itemId, auctionId, msrp, description, link, additionalInfo, brand, model, specs, newAuction);
         let cleanItem = item.cleanup();
         console.log("+")
@@ -105,9 +104,9 @@ function importItem(item, cb) {
 function refreshAllItems(cb) {
   // TODO how will this refresh "recently" completed items
   // find active items that have not been refreshed yet, order by auction end ascending
-  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
+  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).limit(100).toArray((err, nonRefreshedItemLinks) => {
     // find active items that have been refreshed, order by last refreshed ascending
-    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
+    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).limit(100).toArray((err, refreshedItemLinks) => {
       let activeItemLinks = nonRefreshedItemLinks.concat(refreshedItemLinks);
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;
@@ -118,15 +117,18 @@ function refreshAllItems(cb) {
         const durationMinutes = duration / 60;
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;
         console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
-        db.close();
+        // db.close();
         return cb();
       });
     });
   });
 }
-function getNewAuctions() {
+function getNewAuctions(cityAuctionsLink, cb) {
+  console.log("-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_")
+  console.log(cityAuctionsLink)
+  console.log("-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_")
   Nightmare()
-    .goto(cincyAuctions)
+    .goto(cityAuctionsLink)
     .wait('.row.finePrint')
     .evaluate(() => {
       return [...document.querySelectorAll('.row.currentAuctionsListings .auction > a')].map(el => (el as any).href.substring((el as any).href.indexOf("?")+1));
@@ -141,11 +143,12 @@ function getNewAuctions() {
         const start = moment();
         async.eachSeries(newAuctionIds, importAuction, function(err, result) {
             // if result is true then every auction exists
-            const duration = moment().diff(start, 's');
-            const durationMinutes = duration / 60;
-            const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-            console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
-            db.close();
+            // const duration = moment().diff(start, 's');
+            // const durationMinutes = duration / 60;
+            // const durationMinutesRounded = Math.round(100*durationMinutes)/100;
+            // console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
+            // db.close();
+            return cb();
         });
       })
     })
@@ -156,20 +159,36 @@ function getNewAuctions() {
 }
 
 function refresh() {
-  refreshAllItems(() => {
-  });
-  // async.forever(
-  //   (next) => {
-  //     refreshAllItems(() => {
-  //       next()
-  //     });
-  //   }, (err) => {
-  //     console.log("forever loop error:", err)
-  //   }
-  // );
+  // refreshAllItems(() => {
+  // });
+  async.forever(
+    (next) => {
+      console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
+      refreshAllItems(() => {
+        console.log("- - - - - - - -  REEEFRESH AGAIN")
+        next()
+      });
+    }, (err) => {
+      console.log("forever loop error:", err)
+    }
+  );
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
+    // getCincyAreaAuctions();
+}
+
+function getCincyAreaAuctions() {
+  const allAuctions = process.env.AUCTIONS_LINK; // comma separated
+  let auctionsLinks = allAuctions.split(",");
+  console.log("auctionsLinks.length", auctionsLinks.length)
+  async.eachSeries(auctionsLinks, getNewAuctions, function(err, result) {
+      const duration = moment().diff(start, 's');
+      const durationMinutes = duration / 60;
+      const durationMinutesRounded = Math.round(100*durationMinutes)/100;
+      console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
+      // db.close();
+  });
 }
 
 MongoClient.connect(process.env.MONGO_URL, function (err, db) {

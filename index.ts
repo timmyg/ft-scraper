@@ -12,7 +12,11 @@ console.log('starting...')
 const selector = "#DataTable";
 var MongoClient = require('mongodb').MongoClient
 let db, dbAuctions, dbItems;
+// how many processes we should cluster
 var WORKERS = process.env.WEB_CONCURRENCY || 1;
+// expected memory requirements of your application’s processes - defaults to 512
+// process.env.WEB_MEMORY || 512;
+
 
 require('dotenv').config()
 
@@ -24,23 +28,23 @@ function start() {
 
     console.log('connected...')
 
-    const server = new Hapi.Server();
-    server.connection({ port: process.env.PORT || 5000 });
-    server.start((err) => {
-        if (err) {
-            throw err;
-        }
-        console.log('Server running at:', server.info.uri);
+    // const server = new Hapi.Server();
+    // server.connection({ port: process.env.PORT || 5000 });
+    // server.start((err) => {
+    //     if (err) {
+    //         throw err;
+    //     }
+        // console.log('Server running at:', server.info.uri);
         refresh();
-    });
+    // });
 
-    server.route({
-        method: 'GET',
-        path: '/',
-        handler: function (request, reply) {
-            reply('Hello!');
-        }
-    });
+    // server.route({
+    //     method: 'GET',
+    //     path: '/',
+    //     handler: function (request, reply) {
+    //         reply('Hello!');
+    //     }
+    // });
   })
 }
 

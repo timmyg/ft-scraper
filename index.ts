@@ -104,9 +104,9 @@ function importItem(item, cb) {
 function refreshAllItems(cb) {
   // TODO how will this refresh "recently" completed items
   // find active items that have not been refreshed yet, order by auction end ascending
-  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).limit(6).toArray((err, nonRefreshedItemLinks) => {
+  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
     // find active items that have been refreshed, order by last refreshed ascending
-    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).limit(6).toArray((err, refreshedItemLinks) => {
+    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
       let activeItemLinks = nonRefreshedItemLinks.concat(refreshedItemLinks);
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;

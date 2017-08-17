@@ -159,20 +159,22 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  // refreshAllItems(() => {
-  // });
-  console.log("forevering")
-  async.forever(
-    (next) => {
-      console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
-      refreshAllItems(() => {
-        console.log("- - - - - - - -  REEEFRESH AGAIN")
-        next()
-      });
-    }, (err) => {
-      console.log("forever loop error:", err)
-    }
-  );
+  refreshAllItems(() => {
+  });
+
+  // console.log("forevering")
+  // async.forever(
+  //   (next) => {
+  //     console.log("^ ^ ^ ^^ ^^ ^ ^^ ^^^ ^REEEFRESH")
+  //     refreshAllItems(() => {
+  //       console.log("- - - - - - - -  REEEFRESH AGAIN")
+  //       next()
+  //     });
+  //   }, (err) => {
+  //     console.log("forever loop error:", err)
+  //   }
+  // );
+
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });

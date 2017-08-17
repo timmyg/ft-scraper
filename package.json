@@ -37,6 +37,7 @@
     "nightmare": "^2.10.0",
     "node-schedule": "^1.2.4",
     "nodemon": "^1.11.0",
+    "throng": "^4.0.0",
     "ts-node": "^3.0.4",
     "typescript": "^2.3.2",
     "typescript-compiler": "^1.4.1-2",

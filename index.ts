@@ -1,18 +1,58 @@
 
-let Nightmare = require('nightmare');
-let cheerio = require('cheerio');
-let moment = require('moment');
-let async = require('async');
+const Nightmare = require('nightmare');
+const cheerio = require('cheerio');
+const moment = require('moment');
+const async = require('async');
+const throng = require('throng');
 const schedule = require('node-schedule');
-let _ = require('underscore');
+const _ = require('underscore');
 const Hapi = require('hapi');
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
 const selector = "#DataTable";
 var MongoClient = require('mongodb').MongoClient
 let db, dbAuctions, dbItems;
+var WORKERS = process.env.WEB_CONCURRENCY || 1;
 
 require('dotenv').config()
+
+function start() {
+  MongoClient.connect(process.env.MONGO_URL, function (err, db) {
+    if (err) throw err
+    dbAuctions = db.collection('auctions')
+    dbItems = db.collection('items')
+
+    console.log('connected...')
+
+    const server = new Hapi.Server();
+    server.connection({ port: process.env.PORT || 5000 });
+    server.start((err) => {
+        if (err) {
+            throw err;
+        }
+        console.log('Server running at:', server.info.uri);
+        refresh();
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/',
+        handler: function (request, reply) {
+            reply('Hello!');
+        }
+    });
+  })
+}
+
+throng({
+  workers: WORKERS,
+  lifetime: Infinity
+}, start);
+
+throng((id) => {
+  console.log(`Started worker ${id}`);
+});
+
 
 function importAuction(auctionId, cb) {
   let auctionLink = `${process.env.SCRAPE_HOST}/cgi-bin/mnprint.cgi?${auctionId}`;
@@ -57,7 +97,7 @@ function importAuction(auctionId, cb) {
 
 let gI = 0;
 let gActiveItemLinks = 0;
-let start;
+let startTime;
 
 function importItem(item, cb) {
   console.log("import item:", item.link)
@@ -73,7 +113,7 @@ function importItem(item, cb) {
       gI++;
 
       //  estimate time
-      let estimatedTimeSeconds = gActiveItemLinks / gI * moment().diff(start, 's');
+      let estimatedTimeSeconds = gActiveItemLinks / gI * moment().diff(startTime, 's');
       const durationMinutes = estimatedTimeSeconds / 60;
       const durationMinutesRounded = Math.round(100*durationMinutes)/100;
       console.log(`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`)
@@ -110,10 +150,10 @@ function refreshAllItems(cb) {
       let activeItemLinks = nonRefreshedItemLinks.concat(refreshedItemLinks);
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;
-      start = moment();
-      async.eachLimit(activeItemLinks, 5, importItem, function(err, result) {
+      startTime = moment();
+      async.eachLimit(activeItemLinks, 3, importItem, function(err, result) {
       // async.eachSeries(activeItemLinks, importItem, function(err, result) {
-        const duration = moment().diff(start, 's');
+        const duration = moment().diff(startTime, 's');
         const durationMinutes = duration / 60;
         const durationMinutesRounded = Math.round(100*durationMinutes)/100;
         console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
@@ -140,7 +180,7 @@ function getNewAuctions(cityAuctionsLink, cb) {
       dbAuctions.find({}, { id: 1 }).toArray((err, existingAuctions) => {
         let existingAuctionsIds = _.pluck(existingAuctions, 'id')
         let newAuctionIds = _.difference(pageAuctionIds, existingAuctionsIds);
-        const start = moment();
+        const startTime = moment();
         async.eachSeries(newAuctionIds, importAuction, function(err, result) {
             // if result is true then every auction exists
             // const duration = moment().diff(start, 's');
@@ -186,36 +226,10 @@ function getCincyAreaAuctions() {
   let auctionsLinks = allAuctions.split(",");
   console.log("auctionsLinks.length", auctionsLinks.length)
   async.eachSeries(auctionsLinks, getNewAuctions, function(err, result) {
-      const duration = moment().diff(start, 's');
+      const duration = moment().diff(startTime, 's');
       const durationMinutes = duration / 60;
       const durationMinutesRounded = Math.round(100*durationMinutes)/100;
       console.log(`done refreshing auctions! it took ${durationMinutesRounded} minutes`)
       // db.close();
   });
 }
-
-MongoClient.connect(process.env.MONGO_URL, function (err, db) {
-  if (err) throw err
-  dbAuctions = db.collection('auctions')
-  dbItems = db.collection('items')
-
-  console.log('connected...')
-
-  const server = new Hapi.Server();
-  server.connection({ port: process.env.PORT || 5000 });
-  server.start((err) => {
-      if (err) {
-          throw err;
-      }
-      console.log('Server running at:', server.info.uri);
-      refresh();
-  });
-
-  server.route({
-      method: 'GET',
-      path: '/',
-      handler: function (request, reply) {
-          reply('Hello!');
-      }
-  });
-})

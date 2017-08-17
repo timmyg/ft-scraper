@@ -1,4 +1,3 @@
-
 const Nightmare = require('nightmare');
 const cheerio = require('cheerio');
 const moment = require('moment');
@@ -6,7 +5,6 @@ const async = require('async');
 const throng = require('throng');
 const schedule = require('node-schedule');
 const _ = require('underscore');
-const Hapi = require('hapi');
 import { Auction, Bidding, Item } from './models';
 console.log('starting...')
 const selector = "#DataTable";

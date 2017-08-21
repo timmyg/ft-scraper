@@ -14,42 +14,49 @@ let db, dbAuctions, dbItems;
 var WORKERS = process.env.WEB_CONCURRENCY || 1;
 // expected memory requirements of your application’s processes - defaults to 512
 // process.env.WEB_MEMORY || 512;
-
+const docs = 100;
+let skip = 0;
+// let skip =(function () {
+//     var c = [docs];
+//     function d() {
+//         c[0] += docs;
+//         // alert(c[0]);
+//         return c[0];
+//     };
+//     return d;
+// })();
 
 require('dotenv').config()
 
-function start() {
+// function masterFunction() {
+//   MongoClient.connect(process.env.MONGO_URL, function (err, db) {
+//     if (err) throw err
+//     dbAuctions = db.collection('auctions')
+//     dbItems = db.collection('items')
+//     console.log('connected...')
+//     // refresh();
+//   })
+// }
+
+function startFunction() {
+  console.log("startFunction")
+  console.log()
   MongoClient.connect(process.env.MONGO_URL, function (err, db) {
     if (err) throw err
     dbAuctions = db.collection('auctions')
     dbItems = db.collection('items')
-
     console.log('connected...')
-
-    // const server = new Hapi.Server();
-    // server.connection({ port: process.env.PORT || 5000 });
-    // server.start((err) => {
-    //     if (err) {
-    //         throw err;
-    //     }
-        // console.log('Server running at:', server.info.uri);
-        refresh();
-    // });
-
-    // server.route({
-    //     method: 'GET',
-    //     path: '/',
-    //     handler: function (request, reply) {
-    //         reply('Hello!');
-    //     }
-    // });
+    refresh();
   })
 }
 
 throng({
-  workers: WORKERS,
-  lifetime: Infinity
-}, start);
+  workers: WORKERS, // Number of workers (cpu count)
+  lifetime: Infinity, // ms to keep cluster alive
+  grace: 4000, // ms grace period after worker SIGTERM (5000)
+  // master: masterFunction, // Function to call when starting the master process
+  start: startFunction // Function to call when starting the worker processes
+});
 
 throng((id) => {
   console.log(`Started worker ${id}`);
@@ -144,11 +151,16 @@ function importItem(item, cb) {
 }
 
 function refreshAllItems(cb) {
+  skip = skip + docs;
+  // const thisSkip = skip();
+  console.log("_-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-_")
+  console.log("_-^-_-'-__-^-_ refreshAllItems", skip, "_-^-_-'-__-^-_")
+  console.log("_-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-_")
   // TODO how will this refresh "recently" completed items
   // find active items that have not been refreshed yet, order by auction end ascending
-  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
+  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).skip(skip).limit(docs).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
     // find active items that have been refreshed, order by last refreshed ascending
-    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
+    dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).skip(skip).limit(docs).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
       let activeItemLinks = nonRefreshedItemLinks.concat(refreshedItemLinks);
       console.log(`refreshing ${activeItemLinks.length} items`)
       gActiveItemLinks = activeItemLinks.length;
@@ -203,7 +215,6 @@ function getNewAuctions(cityAuctionsLink, cb) {
 function refresh() {
   refreshAllItems(() => {
   });
-
   // console.log("forevering")
   // async.forever(
   //   (next) => {

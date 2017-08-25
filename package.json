@@ -28,8 +28,8 @@
   "dependencies": {
     "@types/node": "^7.0.18",
     "async": "^2.4.1",
+    "chalk": "^2.1.0",
     "cheerio": "^0.22.0",
-    "colors": "^1.1.2",
     "dotenv": "^4.0.0",
     "electron": "^1.7.5",
     "moment": "^2.18.1",

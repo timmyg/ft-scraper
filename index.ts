@@ -5,9 +5,9 @@ const async = require('async');
 const throng = require('throng');
 const schedule = require('node-schedule');
 const _ = require('underscore');
-const colors = require('colors/safe');
-import { Auction, Bidding, Item } from './models';
-console.log(colors.red('starting...'));
+const chalk = require('chalk');
+import { Auction, Bidding, Item, Query } from './models';
+console.log(chalk.green('starting...'));
 const selector = "#DataTable";
 var MongoClient = require('mongodb').MongoClient
 let db, dbAuctions, dbItems;
@@ -40,8 +40,11 @@ throng({
   start: startFunction // Function to call when starting the worker processes
 });
 
+let workerId;
+let workerColor;
 throng((id) => {
   console.log(`Started worker ${id}`);
+  workerId = id;
 });
 
 
@@ -91,7 +94,7 @@ let gActiveItemLinks = 0;
 let startTime;
 
 function importItem(item, cb) {
-  console.log("import item:", item.link)
+  console.log(chalk[workerColor]("import item:", item.link))
   Nightmare()
     .goto(item.link)
     .wait('#DataTable')
@@ -107,7 +110,7 @@ function importItem(item, cb) {
       let estimatedTimeSeconds = gActiveItemLinks / gI * moment().diff(startTime, 's');
       const durationMinutes = estimatedTimeSeconds / 60;
       const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-      console.log(`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`)
+      console.log(chalk[workerColor](`${gI}/${gActiveItemLinks} (estimated ${durationMinutesRounded} minutes)`))
 
       let $ = cheerio.load(table);
       let bids: number = 0, highBidder: string, amount: number, isEnded: boolean;
@@ -128,7 +131,7 @@ function importItem(item, cb) {
       } catch (e) {}
       let bidding = new Bidding(highBidder, amount, bids, new Date(), isEnded);
       dbItems.updateOne({_id: item._id}, {"$set": {bidding: bidding}}, (a, b) => {
-        console.log("^", item.link)
+        console.log(chalk[workerColor]("^", item.link))
         return cb();
       });
     }).catch((error) => {
@@ -137,66 +140,107 @@ function importItem(item, cb) {
     });
 }
 
-function getRandom() {
-  // random number between 1 and 5
-  const random = _.random(1, 5)
-  switch(random) {
-   case 1: {
-      // ended 60 mins ago to now, not isEnded ()
-      console.log(colors.red('*(@#$&(*@&$(*&(*&#)@($*@)#(*$)#@*$'));
-      // dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).skip(skip).limit(docs).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
+function getQuery() {
+  // console.log(chalk.cyan('gid', gid));
 
-      // break;
+  let q = new Query();
+  q.sort = { "bidding.lastUpdated": 1 }
+  q.projection = { link: 1, _id: 1 }
+
+  const now = moment().toDate();
+  // random number between 1 and 5
+  // const random = _.random(1, 5)
+  switch(workerId) {
+   case 1: {
+      // ended 60 mins ago to now, not isEnded (), endTime desc
+      q.queryColor = "red";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- past hour _-_#)@($*@)#(*$)#@*$'));
+      const oneHourAgo = moment().subtract(1, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: oneHourAgo,
+            $lt: now
+        }
+      }
+      return q;
    }
    case 2: {
-      // ending now to next hour, 300
-      console.log(colors.green('*(@#$&(*@&$(*&(*&#)@($*@)#(*$)#@*$'));
-      // break;
+      // ending now to next hour, endTime desc
+      q.queryColor = "green";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- next hour _-_#)@($*@)#(*$)#@*$'));
+      const oneHourFromNow = moment().add(1, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: now,
+            $lt: oneHourFromNow
+        }
+      }
+      return q;
    }
    case 3: {
-      // ending in an hour to 4 hours
-      console.log(colors.yellow('*(@#$&(*@&$(*&(*&#)@($*@)#(*$)#@*$'));
-      // break;
+      // ending in an hour to 4 hours, endTime desc
+      q.queryColor = "yellow";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- 1-4 hours _-_#)@($*@)#(*$)#@*$'));
+      const oneHourFromNow = moment().add(1, "h").toDate()
+      const fourHoursFromNow = moment().add(4, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: oneHourFromNow,
+            $lt: fourHoursFromNow
+        }
+      }
+      return q;
    }
    case 4: {
       // ending in 4 hours to 12 hours
-      console.log(colors.cyan('*(@#$&(*@&$(*&(*&#)@($*@)#(*$)#@*$'));
-      // break;
+      q.queryColor = "cyan";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- 4-12 hours _-_#)@($*@)#(*$)#@*$'));
+      const fourHoursFromNow = moment().add(4, "h").toDate()
+      const twelveHoursFromNow = moment().add(12, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: fourHoursFromNow,
+            $lt: twelveHoursFromNow
+        }
+      }
+      return q;
    }
    case 5: {
       // ending in to 12 hours to forever
-      console.log(colors.magenta('*(@#$&(*@&$(*&(*&#)@($*@)#(*$)#@*$'));
-      // break;
+      q.queryColor = "magenta";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- 12+ hours _-_#)@($*@)#(*$)#@*$'));
+      const twelveHoursFromNow = moment().add(12, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: twelveHoursFromNow
+        }
+      }
+      return q;
    }
   }
 }
 
 function refreshAllItems(cb) {
   skip = skip + docs;
-  // const thisSkip = skip();
-  console.log("_-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-_")
-  console.log("_-^-_-'-__-^-_ refreshAllItems", skip, "_-^-_-'-__-^-_")
-  console.log("_-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-__-^-_-'-_")
-  // TODO how will this refresh "recently" completed items
-  // find active items that have not been refreshed yet, order by auction end ascending
-  // dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$eq": null}}, { link: 1, _id: 1}).skip(skip).limit(docs).sort( { "auction.end": 1 } ).toArray((err, nonRefreshedItemLinks) => {
-    // find active items that have been refreshed, order by last refreshed ascending
-  dbItems.find({"auction.end": {$gte: new Date()}, "bidding": {"$ne": null}}, { link: 1, _id: 1}).skip(skip).limit(docs).sort( { "bidding.lastUpdated": 1 } ).toArray((err, refreshedItemLinks) => {
-    let activeItemLinks = refreshedItemLinks;
-    console.log(`refreshing ${activeItemLinks.length} items`)
-    gActiveItemLinks = activeItemLinks.length;
+  const q = getQuery();
+
+  dbItems.find(q.query || {}, q.projection || {}).sort( q.sort ).toArray((err, items) => {
+    console.log(chalk[workerColor](`refreshing ${items.length} items`))
+    gActiveItemLinks = items.length;
     startTime = moment();
-    async.eachLimit(activeItemLinks, 3, importItem, function(err, result) {
-    // async.eachSeries(activeItemLinks, importItem, function(err, result) {
+    async.eachLimit(items, 3, importItem, function(err, result) {
       const duration = moment().diff(startTime, 's');
       const durationMinutes = duration / 60;
       const durationMinutesRounded = Math.round(100*durationMinutes)/100;
-      console.log(`done refreshing items! it took ${durationMinutesRounded} minutes`)
-      // db.close();
+      console.log(chalk[workerColor](`done refreshing items! it took ${durationMinutesRounded} minutes`))
       return cb();
     });
   });
-  // });
 }
 function getNewAuctions(cityAuctionsLink, cb) {
   console.log("-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_-_-_~_-_")
@@ -228,8 +272,8 @@ function getNewAuctions(cityAuctionsLink, cb) {
 }
 
 function refresh() {
-  // refreshAllItems(() => {
-  // });
+  refreshAllItems(() => {
+  });
   // console.log("forevering")
   // async.forever(
   //   (next) => {
@@ -246,7 +290,7 @@ function refresh() {
   // schedule.scheduleJob({hour: 5, minute: 10}, () => {
   //   getNewAuctions();
   // });
-    getCincyAreaAuctions();
+    // getCincyAreaAuctions();
 }
 
 function getCincyAreaAuctions() {

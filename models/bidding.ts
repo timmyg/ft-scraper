@@ -4,5 +4,6 @@ export class Bidding {
     private amount: number,
     private bids: number,
     private lastUpdated: any,
+    private isEnded: boolean,
   ) {}
 }

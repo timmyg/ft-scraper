@@ -20,7 +20,13 @@ let skip = 0;
 
 require('dotenv').config()
 
-function startFunction() {
+function startFunction(idd) {
+  process.on('SIGTERM', function() {
+    console.log(chalk.magenta(`Worker ${idd} exiting`));
+    console.log('Cleanup here');
+    process.exit();
+  });
+
   console.log("startFunction")
   console.log()
   MongoClient.connect(process.env.MONGO_URL, function (err, db) {
@@ -141,17 +147,17 @@ function importItem(item, cb) {
 }
 
 function getQuery() {
-  // console.log(chalk.cyan('gid', gid));
+  console.log(chalk.bgGreen('------------------------- workerId -------------------------', workerId));
 
   let q = new Query();
   q.sort = { "bidding.lastUpdated": 1 }
   q.projection = { link: 1, _id: 1 }
-
+  const cases = 5;
   const now = moment().toDate();
-  // random number between 1 and 5
-  // const random = _.random(1, 5)
+  // get a worker id between 1 and 5
+  workerId = workerId % cases;
   switch(workerId) {
-   case 1: {
+   case 0: {
       // ended 60 mins ago to now, not isEnded (), endTime desc
       q.queryColor = "red";
       workerColor = q.queryColor;
@@ -165,36 +171,36 @@ function getQuery() {
       }
       return q;
    }
-   case 2: {
+   case 1: {
       // ending now to next hour, endTime desc
       q.queryColor = "green";
       workerColor = q.queryColor;
-      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- next hour _-_#)@($*@)#(*$)#@*$'));
-      const oneHourFromNow = moment().add(1, "h").toDate()
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- next four hours _-_#)@($*@)#(*$)#@*$'));
+      const hourHoursFromNow = moment().add(4, "h").toDate()
       q.query = {
         "auction.end": {
             $gte: now,
-            $lt: oneHourFromNow
+            $lt: hourHoursFromNow
+        }
+      }
+      return q;
+   }
+   case 2: {
+      // ending in an hour to 4 hours, endTime desc
+      q.queryColor = "yellow";
+      workerColor = q.queryColor;
+      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- 1-8 hours _-_#)@($*@)#(*$)#@*$'));
+      const oneHourFromNow = moment().add(1, "h").toDate()
+      const eightHoursFromNow = moment().add(8, "h").toDate()
+      q.query = {
+        "auction.end": {
+            $gte: oneHourFromNow,
+            $lt: eightHoursFromNow
         }
       }
       return q;
    }
    case 3: {
-      // ending in an hour to 4 hours, endTime desc
-      q.queryColor = "yellow";
-      workerColor = q.queryColor;
-      console.log(chalk[workerColor]('*(@#$&(*@&$(*&(*&-_- 1-4 hours _-_#)@($*@)#(*$)#@*$'));
-      const oneHourFromNow = moment().add(1, "h").toDate()
-      const fourHoursFromNow = moment().add(4, "h").toDate()
-      q.query = {
-        "auction.end": {
-            $gte: oneHourFromNow,
-            $lt: fourHoursFromNow
-        }
-      }
-      return q;
-   }
-   case 4: {
       // ending in 4 hours to 12 hours
       q.queryColor = "cyan";
       workerColor = q.queryColor;
@@ -209,7 +215,7 @@ function getQuery() {
       }
       return q;
    }
-   case 5: {
+   case 4: {
       // ending in to 12 hours to forever
       q.queryColor = "magenta";
       workerColor = q.queryColor;
@@ -229,7 +235,7 @@ function refreshAllItems(cb) {
   skip = skip + docs;
   const q = getQuery();
 
-  dbItems.find(q.query || {}, q.projection || {}).sort( q.sort ).toArray((err, items) => {
+  dbItems.find(q.query || {}, q.projection || {}).limit(5).sort( q.sort ).toArray((err, items) => {
     console.log(chalk[workerColor](`refreshing ${items.length} items`))
     gActiveItemLinks = items.length;
     startTime = moment();
@@ -238,6 +244,7 @@ function refreshAllItems(cb) {
       const durationMinutes = duration / 60;
       const durationMinutesRounded = Math.round(100*durationMinutes)/100;
       console.log(chalk[workerColor](`done refreshing items! it took ${durationMinutesRounded} minutes`))
+      process.exit();
       return cb();
     });
   });
